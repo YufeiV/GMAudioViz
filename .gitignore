@@ -1,0 +1,72 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# CMake and native build directories/files
+**/out/
+**/build/
+**/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+compile_commands.json
+Testing/
+
+# Native compiler and linker outputs
+*.o
+*.obj
+*.lo
+*.a
+*.la
+*.lib
+*.dll
+*.so
+*.dylib
+*.exp
+*.pdb
+*.ilk
+*.exe
+*.dSYM/
+
+# GameMaker generated files
+**/Build/
+*.resource_order
+*.old
+
+# Local release/package staging directories
+/release-assets/
+/package/
+/android-jar/
+/artifacts/
+
+# Third-party dependency build/install outputs
+/third_party/build/
+/third_party/dist/
+
+# Local smoke-test artifacts
+/smoke_test.obj
+/smoke_test.exe
+/smoke_test.wav
+/third_party/smoke_test.obj
+/third_party/smoke_test.exe
+/third_party/smoke_test.wav
+/third_party/build_log.txt
+
+# Miscellaneous local output
+*.stackdump
+*.log
+*.tmp

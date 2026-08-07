@@ -1,0 +1,25 @@
+{
+  "extension": "AudioViz",
+  "functions": [
+    {"name": "AudioViz_GetVersion", "returnType": "String", "args": [], "hidden": true},
+    {"name": "AudioViz_AnalyzeSpectrum", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_AnalyzeSpectrumDB", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_WaveformPeaks", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_Bands", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_BandsLog", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_VisualBands", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_Level", "returnType": "Real", "args": ["String", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_ApplyWindow", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_Downmix", "returnType": "Real", "args": ["String", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_FileOpen", "returnType": "Real", "args": ["String"], "hidden": true},
+    {"name": "AudioViz_FileFrames", "returnType": "Real", "args": ["Real"], "hidden": true},
+    {"name": "AudioViz_FileSampleRate", "returnType": "Real", "args": ["Real"], "hidden": true},
+    {"name": "AudioViz_FileChannels", "returnType": "Real", "args": ["Real"], "hidden": true},
+    {"name": "AudioViz_FileRead", "returnType": "Real", "args": ["Real", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_FileSpectrum", "returnType": "Real", "args": ["Real", "Real", "Real", "String"], "hidden": true},
+    {"name": "AudioViz_FileClose", "returnType": "Real", "args": ["Real"], "hidden": true}
+  ],
+  "proxies": [
+    {"file": "AudioViz.dll", "platform": "windows"}
+  ]
+}

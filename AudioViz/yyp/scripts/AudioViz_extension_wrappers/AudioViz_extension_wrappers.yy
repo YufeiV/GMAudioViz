@@ -1,0 +1,13 @@
+{
+  "$GMScript":"v1",
+  "%Name":"AudioViz_extension_wrappers",
+  "isCompatibility":false,
+  "isDnD":false,
+  "name":"AudioViz_extension_wrappers",
+  "parent":{
+    "name":"AudioViz",
+    "path":"folders/AudioViz.yy",
+  },
+  "resourceType":"GMScript",
+  "resourceVersion":"2.0",
+}

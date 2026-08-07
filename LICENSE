@@ -1,0 +1,19 @@
+AudioViz is a multi-license repository. The license depends on the component:
+
+1. GameMaker project and integration resources are licensed under the MIT
+   License. This includes AudioViz/gml/, AudioViz/yyp/, and
+   AudioViz/extension_manifest.json.
+
+2. The AudioViz native extension implementation and its build/integration
+   tooling are licensed under the GNU General Public License, version 2 or
+   any later version (GPL-2.0-or-later). This includes the C++ implementation,
+   Android JNI/Java bridge, iOS Objective-C++ bridge, CMake files, and build
+   scripts outside the GameMaker resource directories.
+
+3. Files in third-party source directories retain their original licenses and
+   copyright notices. In particular, FFTW, libsndfile, libogg, libvorbis, and
+   libopus are not relicensed by this repository.
+
+See LICENSE-MIT.txt and LICENSE-GPL-2.0-or-later.txt for the full license
+texts. The component scope above takes precedence over any default license
+assumption based only on the repository root.

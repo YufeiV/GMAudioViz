@@ -1,0 +1,307 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+name: Build AudioViz releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+      - 'AudioViz/**'
+      - 'scripts/**'
+      - 'fftw-3.3.11/**'
+      - 'libogg-1.3.5/**'
+      - 'libsndfile/**'
+      - 'third_party/src/**'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional tag to create/update a Release for this manual run'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audioviz-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXTENSION_DIR: AudioViz
+
+jobs:
+  build-windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build third-party static libraries
+        shell: pwsh
+        run: |
+          ./scripts/build_thirdparty.ps1 -WorkspaceRoot "$PWD"
+
+      - name: Build AudioViz
+        shell: pwsh
+        run: |
+          Push-Location $env:EXTENSION_DIR
+          cmake --preset x64-release
+          cmake --build out/build/x64-release --parallel
+          Pop-Location
+
+      - name: Collect release assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dll = Get-ChildItem -Path "$env:EXTENSION_DIR/out/build/x64-release" -Recurse -File -Filter 'AudioViz.dll' | Select-Object -First 1
+          if (-not $dll) { throw 'AudioViz.dll was not produced.' }
+          New-Item -ItemType Directory -Force -Path release-assets, package | Out-Null
+          Copy-Item -LiteralPath $dll.FullName -Destination 'release-assets/AudioViz-windows-x64.dll'
+          Copy-Item -LiteralPath $dll.FullName -Destination 'package/AudioViz.dll'
+          Compress-Archive -Path 'package/AudioViz.dll' -DestinationPath 'release-assets/AudioViz-windows-x64.zip' -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: release-assets
+          if-no-files-found: error
+
+  build-linux:
+    name: Ubuntu Linux x64
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build zip
+
+      - name: Build third-party static libraries
+        run: bash scripts/build_thirdparty.sh --build "$RUNNER_TEMP/audioviz-thirdparty"
+
+      - name: Build AudioViz
+        working-directory: AudioViz
+        run: |
+          cmake --preset linux-release
+          cmake --build out/build/linux-release --parallel
+
+      - name: Collect release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          so="$(find AudioViz/out/build/linux-release -type f \( -name 'libAudioViz.so' -o -name 'AudioViz.so' \) -print -quit)"
+          test -n "$so"
+          mkdir -p release-assets package
+          cp "$so" release-assets/AudioViz-linux-x64.so
+          cp "$so" package/AudioViz.so
+          (cd package && zip -q "../release-assets/AudioViz-linux-x64.zip" AudioViz.so)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: release-assets
+          if-no-files-found: error
+
+  build-android:
+    name: Android ${{ matrix.abi }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        abi:
+          - arm64-v8a
+          - x86_64
+          - armeabi-v7a
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;25.2.9519653'
+
+      - name: Select NDK for CMake presets
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+          ndk_home="$sdk_root/ndk/25.2.9519653"
+          test -f "$ndk_home/build/cmake/android.toolchain.cmake"
+          echo "ANDROID_NDK_HOME=$ndk_home" >> "$GITHUB_ENV"
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build zip
+
+      - name: Build third-party static libraries
+        shell: bash
+        run: |
+          bash scripts/build_thirdparty.sh \
+            --build "$RUNNER_TEMP/audioviz-thirdparty-${{ matrix.abi }}" \
+            --toolchain "$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+            --android-abi '${{ matrix.abi }}'
+
+      - name: Build AudioViz
+        working-directory: AudioViz
+        run: |
+          cmake --preset '${{ matrix.abi }}'
+          cmake --build 'out/build/android/${{ matrix.abi }}' --parallel
+
+      - name: Collect release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          so="$(find "AudioViz/out/build/android/${{ matrix.abi }}" -type f -name 'libAudioViz.so' -print -quit)"
+          test -n "$so"
+          mkdir -p release-assets package/lib/'${{ matrix.abi }}'
+          cp "$so" "release-assets/AudioViz-android-${{ matrix.abi }}.so"
+          cp "$so" package/lib/'${{ matrix.abi }}'/libAudioViz.so
+          (cd package && zip -qr "../release-assets/AudioViz-android-${{ matrix.abi }}.zip" lib)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android-${{ matrix.abi }}
+          path: release-assets
+          if-no-files-found: error
+
+  build-apple:
+    name: ${{ matrix.name }}
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS x64
+            preset: macos-release
+            artifact: macos-x64
+            cmake_args: ''
+          - name: iOS device arm64
+            preset: ios-release
+            artifact: ios-device
+            cmake_args: 'CMAKE_SYSTEM_NAME=iOS CMAKE_OSX_SYSROOT=iphoneos CMAKE_OSX_ARCHITECTURES=arm64'
+          - name: iOS simulator x86_64
+            preset: ios-emulator
+            artifact: ios-simulator
+            cmake_args: 'CMAKE_SYSTEM_NAME=iOS CMAKE_OSX_SYSROOT=iphonesimulator CMAKE_OSX_ARCHITECTURES=x86_64'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build tools
+        run: brew install cmake ninja || true
+
+      - name: Build third-party static libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          cmake_args='${{ matrix.cmake_args }}'
+          if [[ -n "$cmake_args" ]]; then
+            read -r -a raw_args <<< "$cmake_args"
+            for arg in "${raw_args[@]}"; do
+              args+=(--cmake-arg "$arg")
+            done
+          fi
+          bash scripts/build_thirdparty.sh \
+            --build "$RUNNER_TEMP/audioviz-thirdparty-${{ matrix.artifact }}" \
+            "${args[@]}"
+
+      - name: Build AudioViz
+        working-directory: AudioViz
+        run: |
+          cmake --preset '${{ matrix.preset }}'
+          cmake --build 'out/build/${{ matrix.preset }}' --parallel
+
+      - name: Collect release assets
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ matrix.artifact }}
+        run: |
+          set -euo pipefail
+          dylib="$(find "AudioViz/out/build/${{ matrix.preset }}" -type f -name 'libAudioViz.dylib' -print -quit)"
+          test -n "$dylib"
+          mkdir -p release-assets package
+          case "$ARTIFACT_NAME" in
+            macos-x64)
+              cp "$dylib" release-assets/AudioViz-macos-x64.dylib
+              cp "$dylib" package/AudioViz.dylib
+              zip_name=AudioViz-macos-x64.zip
+              ;;
+            ios-device)
+              cp "$dylib" release-assets/AudioViz-ios-device.dylib
+              cp "$dylib" package/AudioViz_iosdevice.dylib
+              zip_name=AudioViz-ios-device.zip
+              ;;
+            ios-simulator)
+              cp "$dylib" release-assets/AudioViz-ios-simulator.dylib
+              cp "$dylib" package/AudioViz_iosemulator.dylib
+              zip_name=AudioViz-ios-simulator.zip
+              ;;
+            *) echo "Unknown Apple artifact: $ARTIFACT_NAME" >&2; exit 1 ;;
+          esac
+          (cd package && zip -q "../release-assets/$zip_name" ./*)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apple-${{ matrix.artifact }}
+          path: release-assets
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+    needs:
+      - build-windows
+      - build-linux
+      - build-android
+      - build-apple
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Package Android lib.jar
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android-jar/lib
+          for abi in arm64-v8a x86_64 armeabi-v7a; do
+            source="release-assets/AudioViz-android-${abi}.so"
+            test -f "$source"
+            mkdir -p "android-jar/lib/${abi}"
+            cp "$source" "android-jar/lib/${abi}/libAudioViz.so"
+          done
+          (cd android-jar && zip -qr ../release-assets/AudioViz-android.jar lib)
+
+      - name: Publish Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: release-assets/*
