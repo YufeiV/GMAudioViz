@@ -3,14 +3,15 @@
     SPDX-License-Identifier: GPL-2.0-or-later
 
 .SYNOPSIS
-    Build FFTW, libogg, libvorbis, and libsndfile as static libraries for the
+    Build FFTW, libogg, libvorbis, FLAC, Opus, and libsndfile as static libraries for the
     AudioViz extension.
 
 .DESCRIPTION
     Produces:
-        <workspace>/third_party/dist/include/fftw3.h, sndfile.h, ogg/, vorbis/
+        <workspace>/third_party/dist/include/fftw3.h, sndfile.h, ogg/, vorbis/, FLAC/, opus/
         <workspace>/third_party/dist/lib/fftw3.lib, sndfile.lib,
-                     ogg.lib, vorbis.lib, vorbisenc.lib, vorbisfile.lib
+                     ogg.lib, vorbis.lib, vorbisenc.lib, vorbisfile.lib,
+                     FLAC.lib, opus.lib
 
     libsndfile is built with Ogg Vorbis enabled (external codecs), so the
     extension can decode .ogg files. The AudioViz fork of libsndfile relaxes
@@ -40,12 +41,14 @@ $fftwSrc = Join-Path $root 'fftw-3.3.11'
 $sndfileSrc = Join-Path $root 'libsndfile'
 $oggSrc = Join-Path $root 'libogg'
 $vorbisSrc = Join-Path $root 'third_party\src\libvorbis-1.3.7'
+$flacSrc = Join-Path $root 'third_party\src\flac-1.4.3'
+$opusSrc = Join-Path $root 'third_party\src\opus-1.4'
 $buildRoot = Join-Path $root 'third_party\build'
 $dist = Join-Path $root 'third_party\dist'
 $distInclude = Join-Path $root 'third_party\dist\include'
 $distLib = Join-Path $root 'third_party\dist\lib'
 
-foreach ($p in @($fftwSrc, $sndfileSrc, $oggSrc, $vorbisSrc)) {
+foreach ($p in @($fftwSrc, $sndfileSrc, $oggSrc, $vorbisSrc, $flacSrc, $opusSrc)) {
     if (-not (Test-Path -LiteralPath $p)) { throw "Source directory not found: $p" }
 }
 
@@ -80,6 +83,9 @@ Write-Host "Using ninja : $ninja"
 
 function Invoke-Cmake {
     param([string]$Source, [string]$Build, [string[]]$Defines)
+    if (Test-Path -LiteralPath $Build) {
+        Remove-Item -LiteralPath $Build -Recurse -Force
+    }
     $args = @('-S', $Source, '-B', $Build, '-G', 'Ninja',
               "-DCMAKE_MAKE_PROGRAM=$ninja", '-DCMAKE_BUILD_TYPE=Release',
               '-DCMAKE_POSITION_INDEPENDENT_CODE=ON') + $Defines
@@ -158,7 +164,57 @@ New-Item -ItemType Directory -Force -Path (Join-Path $distInclude 'vorbis') | Ou
 Copy-Item -Path (Join-Path $vorbisSrc 'include\vorbis\*.h') -Destination (Join-Path $distInclude 'vorbis') -Force
 Write-Host "libvorbis OK: $(Join-Path $distLib 'vorbis.lib')"
 
-# --- libsndfile (static, Ogg Vorbis enabled) ---------------------------------
+# --- FLAC (static, Ogg support) ---------------------------------------------
+Write-Host ''
+Write-Host '########## FLAC ##########'
+$flacBuild = Join-Path $buildRoot 'flac'
+Invoke-Cmake -Source $flacSrc -Build $flacBuild -Defines @(
+    '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+    '-DBUILD_SHARED_LIBS=OFF',
+    '-DBUILD_CXXLIBS=OFF',
+    '-DBUILD_PROGRAMS=OFF',
+    '-DBUILD_EXAMPLES=OFF',
+    '-DBUILD_TESTING=OFF',
+    '-DBUILD_DOCS=OFF',
+    '-DINSTALL_MANPAGES=OFF',
+    '-DINSTALL_PKGCONFIG_MODULES=OFF',
+    '-DINSTALL_CMAKE_CONFIG_MODULE=OFF',
+    '-DWITH_OGG=ON',
+    "-DOGG_INCLUDE_DIR=$distInclude",
+    "-DOGG_LIBRARY=$(Join-Path $distLib 'ogg.lib')"
+)
+
+$flacLib = Get-ChildItem -Path $flacBuild -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -in @('FLAC.lib', 'libFLAC.lib') } | Select-Object -First 1
+if (-not $flacLib) { throw 'FLAC.lib was not produced by the FLAC build.' }
+Copy-Item -LiteralPath $flacLib.FullName -Destination (Join-Path $distLib 'FLAC.lib') -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $distInclude 'FLAC') | Out-Null
+Copy-Item -Path (Join-Path $flacSrc 'include\FLAC\*.h') -Destination (Join-Path $distInclude 'FLAC') -Force
+Write-Host "FLAC OK: $($flacLib.FullName)"
+
+# --- Opus (static) -----------------------------------------------------------
+Write-Host ''
+Write-Host '########## Opus ##########'
+$opusBuild = Join-Path $buildRoot 'opus'
+Invoke-Cmake -Source $opusSrc -Build $opusBuild -Defines @(
+    '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
+    '-DBUILD_SHARED_LIBS=OFF',
+    '-DOPUS_BUILD_SHARED_LIBRARY=OFF',
+    '-DOPUS_BUILD_PROGRAMS=OFF',
+    '-DOPUS_BUILD_TESTING=OFF',
+    '-DOPUS_INSTALL_PKG_CONFIG_MODULE=OFF',
+    '-DOPUS_INSTALL_CMAKE_CONFIG_MODULE=OFF'
+)
+
+$opusLib = Get-ChildItem -Path $opusBuild -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -in @('opus.lib', 'Opus.lib') } | Select-Object -First 1
+if (-not $opusLib) { throw 'opus.lib was not produced by the Opus build.' }
+Copy-Item -LiteralPath $opusLib.FullName -Destination (Join-Path $distLib 'opus.lib') -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $distInclude 'opus') | Out-Null
+Copy-Item -Path (Join-Path $opusSrc 'include\opus\*.h') -Destination (Join-Path $distInclude 'opus') -Force
+Write-Host "Opus OK: $($opusLib.FullName)"
+
+# --- libsndfile (static, Ogg Vorbis, FLAC, and Opus enabled) -----------------
 Write-Host ''
 Write-Host '########## libsndfile ##########'
 $sndBuild = Join-Path $buildRoot 'sndfile'
@@ -177,6 +233,10 @@ Invoke-Cmake -Source $sndfileSrc -Build $sndBuild -Defines @(
     "-DVorbis_Enc_LIBRARY=$(Join-Path $distLib 'vorbisenc.lib')",
     "-DVorbis_File_INCLUDE_DIR=$distInclude",
     "-DVorbis_File_LIBRARY=$(Join-Path $distLib 'vorbisfile.lib')",
+    "-DFLAC_INCLUDE_DIR=$distInclude",
+    "-DFLAC_LIBRARY=$(Join-Path $distLib 'FLAC.lib')",
+    "-DOPUS_INCLUDE_DIR=$distInclude",
+    "-DOPUS_LIBRARY=$(Join-Path $distLib 'opus.lib')",
     '-DENABLE_MPEG=OFF',
     '-DBUILD_PROGRAMS=OFF',
     '-DBUILD_EXAMPLES=OFF',
