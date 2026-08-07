@@ -58,7 +58,7 @@ fi
 
 fftw_src="${root}/fftw-3.3.11"
 ogg_src="${root}/libogg"
-vorbis_src="${root}/third_party/src/vorbis-1.3.7"
+vorbis_src="${root}/third_party/src/libvorbis-1.3.7"
 sndfile_src="${root}/libsndfile"
 
 mkdir -p "${dist}/include" "${dist}/lib" "${build_root}"
