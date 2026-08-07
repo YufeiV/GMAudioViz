@@ -62,6 +62,14 @@ vorbis_src="${root}/third_party/src/libvorbis-1.3.7"
 sndfile_src="${root}/libsndfile"
 libsndfile_patch_script="${root}/scripts/patch_libsndfile.cmake"
 
+# FFTW's SSE2 path contains x86 CPUID inline assembly. NDK Clang can accept
+# -msse2 for an ARM target but fails when that path is compiled, so keep it
+# enabled only for the Android x86_64 ABI.
+fftw_sse2="ON"
+if [[ -n "${android_abi}" && "${android_abi}" != "x86_64" ]]; then
+    fftw_sse2="OFF"
+fi
+
 "${cmake_bin}" "-DSNDFILE_SOURCE=${sndfile_src}" -P "${libsndfile_patch_script}"
 
 mkdir -p "${dist}/include" "${dist}/lib" "${build_root}"
@@ -104,7 +112,7 @@ configure_build_install fftw "${fftw_src}" \
     -DENABLE_QUAD_PRECISION=OFF \
     -DENABLE_THREADS=OFF \
     -DENABLE_OPENMP=OFF \
-    -DENABLE_SSE2=ON \
+    "-DENABLE_SSE2=${fftw_sse2}" \
     -DENABLE_AVX=OFF \
     -DENABLE_AVX2=OFF
 
