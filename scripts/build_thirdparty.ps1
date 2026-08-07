@@ -38,7 +38,7 @@ $root = [System.IO.Path]::GetFullPath($WorkspaceRoot)
 
 $fftwSrc = Join-Path $root 'fftw-3.3.11'
 $sndfileSrc = Join-Path $root 'libsndfile'
-$oggSrc = Join-Path $root 'libogg-1.3.5'
+$oggSrc = Join-Path $root 'libogg'
 $vorbisSrc = Join-Path $root 'third_party\src\vorbis-1.3.7'
 $buildRoot = Join-Path $root 'third_party\build'
 $dist = Join-Path $root 'third_party\dist'

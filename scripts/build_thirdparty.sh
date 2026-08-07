@@ -57,7 +57,7 @@ if ! command -v "$ninja_bin" >/dev/null 2>&1; then
 fi
 
 fftw_src="${root}/fftw-3.3.11"
-ogg_src="${root}/libogg-1.3.5"
+ogg_src="${root}/libogg"
 vorbis_src="${root}/third_party/src/vorbis-1.3.7"
 sndfile_src="${root}/libsndfile"
 

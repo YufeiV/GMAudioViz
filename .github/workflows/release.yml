@@ -12,7 +12,7 @@ on:
       - 'AudioViz/**'
       - 'scripts/**'
       - 'fftw-3.3.11/**'
-      - 'libogg-1.3.5/**'
+      - 'libogg/**'
       - 'libsndfile/**'
       - 'third_party/src/**'
   workflow_dispatch:
