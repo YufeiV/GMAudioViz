@@ -38,7 +38,7 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -72,7 +72,7 @@ jobs:
           Compress-Archive -Path 'package/AudioViz.dll' -DestinationPath 'release-assets/AudioViz-windows-x64.zip' -Force
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-windows
           path: release-assets
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -111,7 +111,7 @@ jobs:
           (cd package && zip -q "../release-assets/AudioViz-linux-x64.zip" AudioViz.so)
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-linux
           path: release-assets
@@ -129,7 +129,7 @@ jobs:
           - armeabi-v7a
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -182,7 +182,7 @@ jobs:
           (cd package && zip -qr "../release-assets/AudioViz-android-${{ matrix.abi }}.zip" lib)
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-android-${{ matrix.abi }}
           path: release-assets
@@ -209,7 +209,7 @@ jobs:
             cmake_args: 'CMAKE_SYSTEM_NAME=iOS CMAKE_OSX_SYSROOT=iphonesimulator CMAKE_OSX_ARCHITECTURES=x86_64'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -268,7 +268,7 @@ jobs:
           (cd package && zip -q "../release-assets/$zip_name" ./*)
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-apple-${{ matrix.artifact }}
           path: release-assets
@@ -285,7 +285,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Download platform artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: release-assets
@@ -305,7 +305,7 @@ jobs:
           (cd android-jar && zip -qr ../release-assets/AudioViz-android.jar lib)
 
       - name: Publish Release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
           target_commitish: ${{ github.sha }}

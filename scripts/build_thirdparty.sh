@@ -59,9 +59,10 @@ fi
 fftw_src="${root}/fftw-3.3.11"
 ogg_src="${root}/libogg"
 vorbis_src="${root}/third_party/src/libvorbis-1.3.7"
-flac_src="${root}/third_party/src/flac-1.4.3"
-opus_src="${root}/third_party/src/opus-1.4"
 sndfile_src="${root}/libsndfile"
+libsndfile_patch_script="${root}/scripts/patch_libsndfile.cmake"
+
+"${cmake_bin}" "-DSNDFILE_SOURCE=${sndfile_src}" -P "${libsndfile_patch_script}"
 
 mkdir -p "${dist}/include" "${dist}/lib" "${build_root}"
 
@@ -127,33 +128,6 @@ configure_build_install vorbis "${vorbis_src}" \
     -DOGG_INCLUDE_DIR="${ogg_include}" \
     -DOGG_LIBRARY="${ogg_lib}"
 
-flac_lib="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo FLAC.lib || echo libFLAC.a )"
-opus_lib="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo opus.lib || echo libopus.a )"
-
-echo "==> Building FLAC"
-configure_build_install flac "${flac_src}" \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    -DBUILD_CXXLIBS=OFF \
-    -DBUILD_PROGRAMS=OFF \
-    -DBUILD_EXAMPLES=OFF \
-    -DBUILD_TESTING=OFF \
-    -DBUILD_DOCS=OFF \
-    -DINSTALL_MANPAGES=OFF \
-    -DINSTALL_PKGCONFIG_MODULES=OFF \
-    -DINSTALL_CMAKE_CONFIG_MODULE=OFF \
-    -DWITH_OGG=ON \
-    -DOGG_INCLUDE_DIR="${ogg_include}" \
-    -DOGG_LIBRARY="${ogg_lib}"
-
-echo "==> Building Opus"
-configure_build_install opus "${opus_src}" \
-    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    -DOPUS_BUILD_SHARED_LIBRARY=OFF \
-    -DOPUS_BUILD_PROGRAMS=OFF \
-    -DOPUS_BUILD_TESTING=OFF \
-    -DOPUS_INSTALL_PKG_CONFIG_MODULE=OFF \
-    -DOPUS_INSTALL_CMAKE_CONFIG_MODULE=OFF
-
 echo "==> Building libsndfile"
 configure_build_install sndfile "${sndfile_src}" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
@@ -174,11 +148,7 @@ configure_build_install sndfile "${sndfile_src}" \
     -DVorbis_Enc_INCLUDE_DIR="${dist}/include" \
     -DVorbis_Enc_LIBRARY="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo vorbisenc.lib || echo libvorbisenc.a )" \
     -DVorbis_File_INCLUDE_DIR="${dist}/include" \
-    -DVorbis_File_LIBRARY="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo vorbisfile.lib || echo libvorbisfile.a )" \
-    -DFLAC_INCLUDE_DIR="${dist}/include" \
-    -DFLAC_LIBRARY="${flac_lib}" \
-    -DOPUS_INCLUDE_DIR="${dist}/include" \
-    -DOPUS_LIBRARY="${opus_lib}"
+    -DVorbis_File_LIBRARY="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo vorbisfile.lib || echo libvorbisfile.a )"
 
 cp "${fftw_src}/api/fftw3.h" "${dist}/include/fftw3.h"
 cp "${sndfile_src}/include/sndfile.h" "${dist}/include/sndfile.h"

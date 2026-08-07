@@ -61,7 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build_thirdparty.ps1
 
 > libsndfile 已启用 **Ogg Vorbis** 外部编解码（WAV/AIFF/AU/RAW/OGG 等均可读取）。
 > 本地 libsndfile 打了小补丁：把上游「必须同时有 Vorbis+FLAC+Opus」的要求放宽为
-> 只依赖 Vorbis+Ogg（见 `libsndfile/cmake/SndFileChecks.cmake` 中的注释）。FLAC、
+> 只依赖 Vorbis+Ogg（由 `scripts/patch_libsndfile.cmake` 在构建时应用）。FLAC、
 > Opus、MP3 暂未启用；如需可仿照 `scripts/build_thirdparty.ps1` 加入对应外部库。
 
 ### 2. 构建 AudioViz.dll
