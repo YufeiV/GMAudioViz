@@ -96,6 +96,7 @@ jobs:
         run: |
           mkdir -p "$THIRDPARTY_DIST"
           bash scripts/build_thirdparty.sh \
+            --root "$GITHUB_WORKSPACE" \
             --build "$RUNNER_TEMP/audioviz-thirdparty" \
             --dist "$THIRDPARTY_DIST"
 
@@ -174,6 +175,7 @@ jobs:
         run: |
           mkdir -p "$THIRDPARTY_DIST"
           bash scripts/build_thirdparty.sh \
+            --root "$GITHUB_WORKSPACE" \
             --build "$RUNNER_TEMP/audioviz-thirdparty-${{ matrix.abi }}" \
             --dist "$THIRDPARTY_DIST" \
             --toolchain "$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \

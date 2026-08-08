@@ -116,6 +116,12 @@ configure_build_install fftw "${fftw_src}" \
     -DENABLE_AVX=OFF \
     -DENABLE_AVX2=OFF
 
+# FFTW's CMake install rules are platform-dependent; stage the public header
+# explicitly before configuring the libraries that consume the dist folder.
+cp "${fftw_src}/api/fftw3.h" "${dist}/include/fftw3.h"
+test -f "${dist}/include/fftw3.h"
+echo "FFTW header staged at ${dist}/include/fftw3.h"
+
 echo "==> Building libogg"
 configure_build_install ogg "${ogg_src}" \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
@@ -158,7 +164,10 @@ configure_build_install sndfile "${sndfile_src}" \
     -DVorbis_File_INCLUDE_DIR="${dist}/include" \
     -DVorbis_File_LIBRARY="${dist}/lib/$( [[ "${OSTYPE:-}" == msys* ]] && echo vorbisfile.lib || echo libvorbisfile.a )"
 
-cp "${fftw_src}/api/fftw3.h" "${dist}/include/fftw3.h"
 cp "${sndfile_src}/include/sndfile.h" "${dist}/include/sndfile.h"
+
+test -f "${dist}/include/fftw3.h"
+test -f "${dist}/include/sndfile.h"
+test -f "${dist}/lib/libfftw3.a"
 
 echo "==> Third-party dependencies installed in ${dist}"
