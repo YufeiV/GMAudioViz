@@ -31,6 +31,7 @@ concurrency:
 
 env:
   EXTENSION_DIR: AudioViz
+  THIRDPARTY_DIST: ${{ github.workspace }}/third_party/dist
 
 jobs:
   build-windows:
@@ -91,12 +92,24 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cmake ninja-build zip
 
       - name: Build third-party static libraries
-        run: bash scripts/build_thirdparty.sh --build "$RUNNER_TEMP/audioviz-thirdparty"
+        shell: bash
+        run: |
+          mkdir -p "$THIRDPARTY_DIST"
+          bash scripts/build_thirdparty.sh \
+            --build "$RUNNER_TEMP/audioviz-thirdparty" \
+            --dist "$THIRDPARTY_DIST"
+
+      - name: Verify third-party static libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$THIRDPARTY_DIST/include/fftw3.h"
+          test -f "$THIRDPARTY_DIST/lib/libfftw3.a"
 
       - name: Build AudioViz
         working-directory: AudioViz
         run: |
-          cmake --preset linux-release
+          cmake --preset linux-release -DAUDIOVIZ_THIRDPARTY="$THIRDPARTY_DIST"
           cmake --build out/build/linux-release --parallel
 
       - name: Collect release assets
@@ -159,15 +172,24 @@ jobs:
       - name: Build third-party static libraries
         shell: bash
         run: |
+          mkdir -p "$THIRDPARTY_DIST"
           bash scripts/build_thirdparty.sh \
             --build "$RUNNER_TEMP/audioviz-thirdparty-${{ matrix.abi }}" \
+            --dist "$THIRDPARTY_DIST" \
             --toolchain "$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
             --android-abi '${{ matrix.abi }}'
+
+      - name: Verify third-party static libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$THIRDPARTY_DIST/include/fftw3.h"
+          test -f "$THIRDPARTY_DIST/lib/libfftw3.a"
 
       - name: Build AudioViz
         working-directory: AudioViz
         run: |
-          cmake --preset '${{ matrix.abi }}'
+          cmake --preset '${{ matrix.abi }}' -DAUDIOVIZ_THIRDPARTY="$THIRDPARTY_DIST"
           cmake --build 'out/build/android/${{ matrix.abi }}' --parallel
 
       - name: Collect release assets
